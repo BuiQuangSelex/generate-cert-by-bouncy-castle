@@ -134,12 +134,13 @@ public class CertificateProvider {
         BigInteger clientCertSerialNum = new BigInteger(Long.toString(new SecureRandom().nextLong()));
 
         // Sign the new KeyPair with the root cert Private Key
-        PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(issuedCertSubject, keyPair.getPublic());
-        JcaContentSignerBuilder csrBuilder = new JcaContentSignerBuilder(SIGNATURE_ALGORITHM).setProvider(BC_PROVIDER);
+        PKCS10CertificationRequestBuilder certificationRequestBuilder = new JcaPKCS10CertificationRequestBuilder(issuedCertSubject, keyPair.getPublic());
 
         // Sign the new KeyPair with the root cert Private Key
-        ContentSigner csrContentSigner = csrBuilder.build(caPrivateKey);
-        var csr = p10Builder.build(csrContentSigner);
+        JcaContentSignerBuilder signerBuilder = new JcaContentSignerBuilder(SIGNATURE_ALGORITHM).setProvider(BC_PROVIDER);
+        ContentSigner contentSigner = signerBuilder.build(caPrivateKey);
+
+        var csr = certificationRequestBuilder.build(contentSigner);
 
         // Use the Signed KeyPair and CSR to generate an issued Certificate
         // Here serial number is randomly generated. In general, CAs use
@@ -154,7 +155,7 @@ public class CertificateProvider {
         clientCertBuilder.addExtension(Extension.authorityKeyIdentifier, false, issuedCertExtUtils.createAuthorityKeyIdentifier(caCertificate));
         clientCertBuilder.addExtension(Extension.subjectKeyIdentifier, false, issuedCertExtUtils.createSubjectKeyIdentifier(csr.getSubjectPublicKeyInfo()));
 
-        X509CertificateHolder clientCertHolder = clientCertBuilder.build(csrContentSigner);
+        X509CertificateHolder clientCertHolder = clientCertBuilder.build(contentSigner);
         return new JcaX509CertificateConverter().setProvider(BC_PROVIDER).getCertificate(clientCertHolder);
     }
 
